@@ -14,7 +14,6 @@ class SmartCTFScoreBoard extends UnrealCTFScoreBoard;
 #exec texture IMPORT NAME=mosttime File=Textures\mosttime.pcx GROUP=SmartCTF MIPS=OFF FLAGS=2
 #exec texture IMPORT NAME=mostkills File=Textures\mostkills.pcx GROUP=SmartCTF MIPS=OFF FLAGS=2
 #exec texture IMPORT NAME=mostcovers File=Textures\mostcovers.pcx GROUP=SmartCTF MIPS=OFF FLAGS=2
-#exec texture IMPORT NAME=2on2 File=Textures\2on2.pcx GROUP=SmartCTF MIPS=OFF FLAGS=2
 
 var ScoreBoard NormalScoreBoard;
 var SmartCTFGameReplicationInfo SCTFGame;
@@ -37,11 +36,11 @@ const colorPauseTime = 0.08;
 var Color White, Gray, DarkGray, Yellow, RedTeamColor, BlueTeamColor, RedHeaderColor, BlueHeaderColor, StatsColor, FooterColor, HeaderColor, TinyInfoColor, HeaderTinyInfoColor, ChampionColor, ChampionColorTemp ;
 var float StatsTextWidth, StatHeight, MeterHeight, NameHeight, ColumnHeight, StatBlockHeight;
 var float RedStartX, BlueStartX, ColumnWidth, StatWidth, StatsHorSpacing, ShadingSpacingX, HeaderShadingSpacingY, ColumnShadingSpacingY;
-var float StartY, StatLineHeight, StatBlockSpacing, StatIndent;
+var float StartY, StatLineHeight, StatBlockSpacing, StatIndent, FaceDimension;
 var TournamentGameReplicationInfo pTGRI;
 var PlayerReplicationInfo pPRI;
 var Font StatFont, CapFont, FooterFont, GameEndedFont, PlayerNameFont, FragsFont, TinyInfoFont;
-var Font PtsFont22, PtsFont20, PtsFont18, PtsFont16, PtsFont14, PtsFont12;
+//var Font PtsFont22, PtsFont20, PtsFont18, PtsFont16, PtsFont14, PtsFont12;
 
 var int MaxCaps, MaxAssists, MaxGrabs, MaxCovers, MaxSeals, MaxDefKills, MaxFlagKills, MaxFrags, MaxDeaths;
 var int TotShieldBelts, TotAmps;
@@ -57,7 +56,7 @@ struct FlagData {
 var FlagData FD[32]; // there can be max 32 so max 32 different flags
 var int saveindex; // new loaded flags will be saved in FD[index]
 
-var Texture RankingIcon[13];
+var Texture RankingIcon[12];
 
 function int GetFlagIndex(string Prefix)
 {
@@ -82,12 +81,14 @@ function PostBeginPlay()
   LastSortTime = -100;
 
   // Preload
+  /*
   PtsFont22 = Font( DynamicLoadObject( "LadderFonts.UTLadder22", class'Font' ) );
   PtsFont20 = Font( DynamicLoadObject( "LadderFonts.UTLadder20", class'Font' ) );
   PtsFont18 = Font( DynamicLoadObject( "LadderFonts.UTLadder18", class'Font' ) );
   PtsFont16 = Font( DynamicLoadObject( "LadderFonts.UTLadder16", class'Font' ) );
   PtsFont14 = Font( DynamicLoadObject( "LadderFonts.UTLadder14", class'Font' ) );
   PtsFont12 = Font( DynamicLoadObject( "LadderFonts.UTLadder12", class'Font' ) );
+  */
   ChampionColorTemp = ChampionColor;
 
   SpawnNormalScoreBoard();
@@ -192,13 +193,13 @@ function ShowScores( Canvas C )
 
 function ShowIndicator( Canvas C )
 {
-  local float BlockLen, LineHeight;
+  local float BlockLen, LineHeight, Scale;
 
   C.DrawColor.R = OwnerStats.IndicatorVisibility;
   C.DrawColor.G = OwnerStats.IndicatorVisibility;
   C.DrawColor.B = OwnerStats.IndicatorVisibility;
   C.Style = ERenderStyle.STY_Translucent;
-  C.Font = C.SmallFont;
+  C.Font = MyFonts.GetSmallestFont( C.ClipX );
   C.StrLen( "Scoreboard:", BlockLen, LineHeight );
   C.SetPos( C.ClipX - BlockLen - 16, 16 );
   C.DrawText( "Scoreboard:" );
@@ -206,9 +207,10 @@ function ShowIndicator( Canvas C )
   C.DrawText( "Default" );
   C.SetPos( C.ClipX - BlockLen, 16 + 2 * LineHeight );
   C.DrawText( "SmartCTF" );
-  if( OwnerStats.bViewingStats ) C.SetPos( C.ClipX - BlockLen - 16, 16 + 2 * LineHeight );
-  else C.SetPos( C.ClipX - BlockLen - 16, 16 + LineHeight );
-  C.DrawIcon( texture'UWindow.MenuTick', 1 );
+  Scale = LineHeight / texture'UWindow.MenuTick'.VSize / 2.0; 
+  if( OwnerStats.bViewingStats ) C.SetPos( C.ClipX - BlockLen - texture'UWindow.MenuTick'.VSize*Scale - 2, 16 + 2.25 * LineHeight );
+  else C.SetPos( C.ClipX - BlockLen - texture'UWindow.MenuTick'.VSize*Scale - 2, 16 + 1.25 * LineHeight);
+  C.DrawIcon( texture'UWindow.MenuTick', Scale );
   C.Style = ERenderStyle.STY_Normal;
 
   if( Level.TimeSeconds - OwnerStats.IndicatorStartShow > 2 ) OwnerStats.IndicatorVisibility = 0;
@@ -220,7 +222,7 @@ function SmartCTFShowScores( Canvas C )
   local string nameCharrs[64];
   local float Eff;
   local int RedY, BlueY, X, Y;
-  local float Nil, DummyX, DummyY, SizeX, SizeY, Buffer, Size;
+  local float Nil, DummyX, DummyY, SizeX, SizeY, Buffer, Size, rankXOffset;
   local byte LabelDrawn[2], Rendered[2];
   local Color TeamColor, TempColor;
   local string TempStr;
@@ -228,7 +230,7 @@ function SmartCTFShowScores( Canvas C )
   local int FlagShift; /* shifting elements to fit a flag */
   local int RankingIconNum;
   local float charrOffset;
-  
+  local float scale;
 
   if( Level.TimeSeconds - LastSortTime > 0.5 )
   {
@@ -363,7 +365,6 @@ function SmartCTFShowScores( Canvas C )
     C.StrLen( "Test", Nil, DummyY );
     if( LabelDrawn[Ordered[i].Team] != 2 && ( Y + NameHeight + StatBlockHeight + StatBlockSpacing > C.ClipY - DummyY * 5 ) )
     {
-
       C.DrawColor = TeamColor;
       C.StrLen( MoreText , Size, DummyY );
       if( Ordered[i].Team == 1 ) C.SetPos( X + ColumnWidth - Size, C.ClipY - DummyY * 5 );
@@ -373,8 +374,7 @@ function SmartCTFShowScores( Canvas C )
     }
 
     else if( LabelDrawn[Ordered[i].Team] != 2 )
-    {
-
+    {      
       // Draw the face
       if( Ordered[i].HasFlag == None )
       {
@@ -382,11 +382,11 @@ function SmartCTFShowScores( Canvas C )
         C.DrawColor = White;
         C.Style = ERenderStyle.STY_Translucent;
         C.SetPos( X, Y );
-        if( SCTFGame.bStatsDrawFaces && Ordered[i].TalkTexture != None ) C.DrawIcon( Ordered[i].TalkTexture, 0.5 );
-        else C.DrawIcon( texture'faceless', 0.5 );
+        if( SCTFGame.bStatsDrawFaces && Ordered[i].TalkTexture != None ) C.DrawIcon( Ordered[i].TalkTexture, FaceDimension/Ordered[i].TalkTexture.USize );
+        else C.DrawIcon( texture'faceless', FaceDimension/texture'faceless'.USize );
         C.SetPos( X, Y );
         C.DrawColor = DarkGray;
-        C.DrawIcon( texture'IconSelection', 1 );
+        C.DrawIcon( texture'IconSelection', FaceDimension/texture'IconSelection'.USize );
         C.Style = ERenderStyle.STY_Normal;
         C.bNoSmooth = True;
       }
@@ -408,26 +408,25 @@ function SmartCTFShowScores( Canvas C )
           case "mosttime":  RankingIconNum = 9; break;
           case "mostkills":  RankingIconNum = 10; break;
           case "mostcovers": RankingIconNum = 11; break;
-          case "2on2":      RankingIconNum = 12; break;
         }
         if(RankingIconNum != -1) {
           C.DrawColor = White;
-          C.SetPos( X + StatIndent + 8, Y - 2);
-          C.DrawIcon(RankingIcon[RankingIconNum], 0.75);
-          C.SetPos( X + StatIndent + 40, Y );
+          scale = NameHeight/RankingIcon[RankingIconNum].VSize * 0.75;
+          rankXOffset = RankingIcon[RankingIconNum].VSize*scale + 16;
+          C.SetPos( X + StatIndent + 8, Y + RankingIcon[RankingIconNum].VSize*scale * 0.25 - 2 );
+          C.DrawIcon(RankingIcon[RankingIconNum], scale);
+          C.SetPos( X + StatIndent + rankXOffset, Y );
         }
       } else C.SetPos( X + StatIndent, Y );
 
       // Draw the player name
       C.Font = PlayerNameFont;
-      //if(PlayerStats.RankingStatus == "2on2") {
-      //  C.DrawColor = ChampionColorTemp;
       if( Ordered[i].bAdmin ) C.DrawColor = White;
       else if( Ordered[i].PlayerID == pPRI.PlayerID ) C.DrawColor = Yellow;
       else C.DrawColor = TeamColor; 
       
       TempColor = C.DrawColor;
-      if(PlayerStats.RankingStatus == "2on2" || PlayerStats.RankingStatus == "top1") {
+      if(PlayerStats.RankingStatus == "top1") {
         if(currWhiteChar >= 69) { 
           currWhiteChar = 0;   
           bColorPaused = True;
@@ -461,7 +460,7 @@ function SmartCTFShowScores( Canvas C )
           C.DrawText(Mid(Ordered[i].PlayerName, currChar, 1));    
           C.StrLen( Mid(Ordered[i].PlayerName, currChar, 1), Size, Buffer );  
           charrOffset += Size;
-          C.SetPos( X + StatIndent + 40 + charrOffset, Y);
+          C.SetPos( X + StatIndent + rankXOffset + charrOffset, Y);
         }
       } else C.DrawText( Ordered[i].PlayerName );
       C.StrLen( Ordered[i].PlayerName, Size, Buffer );
@@ -471,9 +470,7 @@ function SmartCTFShowScores( Canvas C )
       C.StrLen( "TEST", Buffer, DummyY );
 
       // Draw Time, Eff, HS, SB, Amp
-      if(RankingIconNum != -1) {
-          C.SetPos( X + StatIndent + Size + StatsHorSpacing + 40, Y + ( NameHeight - DummyY * 2 ) / 2 );
-      } else C.SetPos( X + StatIndent + Size + StatsHorSpacing, Y + ( NameHeight - DummyY * 2 ) / 2 );
+      C.SetPos( X + StatIndent + rankXOffset + Size + StatsHorSpacing, Y + ( NameHeight - DummyY * 2 ) / 2 );
       TempStr = "";
       if( PlayerStats.HeadShots != 0 ) TempStr = TempStr $ "HS:" $ PlayerStats.HeadShots;
       if( PlayerStats.Combos != 0 ) TempStr = TempStr $ "Combos:" $ PlayerStats.Combos;
@@ -485,31 +482,30 @@ function SmartCTFShowScores( Canvas C )
       Time = Max( 1, ( Level.TimeSeconds + pPRI.StartTime - Ordered[i].StartTime ) / 60 );
       if( PlayerStats.Frags + Ordered[i].Deaths == 0 ) Eff = 0;
       else Eff = ( PlayerStats.Frags / ( PlayerStats.Frags + Ordered[i].Deaths ) ) * 100;
-      if(RankingIconNum != -1) {
-        C.SetPos( X + StatIndent + Size + StatsHorSpacing + 40, Y + ( NameHeight - DummyY * 2 ) / 2 + DummyY );
-      } else C.SetPos( X + StatIndent + Size + StatsHorSpacing, Y + ( NameHeight - DummyY * 2 ) / 2 + DummyY );
+      C.SetPos( X + StatIndent + rankXOffset + Size + StatsHorSpacing, Y + ( NameHeight - DummyY * 2 ) / 2 + DummyY );
       C.DrawText( "TM:" $ Time $ " EFF:" $ Clamp( int( Eff ), 0, 100 ) $ "%" );
 
       // Draw the country flag
       if(PlayerStats.CountryPrefix != "")
       {
-        C.SetPos( X+8, Y + StatIndent);
+        C.SetPos( X+FaceDimension*0.25, Y + FaceDimension + StatsHorSpacing*0.5);
         C.bNoSmooth = False;
         C.DrawColor = White;
-        C.DrawIcon(FD[GetFlagIndex(PlayerStats.CountryPrefix)].Tex, 1.0);
-        FlagShift=12;
+        C.DrawIcon(FD[GetFlagIndex(PlayerStats.CountryPrefix)].Tex, FaceDimension*0.5/FD[GetFlagIndex(PlayerStats.CountryPrefix)].Tex.USize);
+        FlagShift=FaceDimension*0.5*0.75 - StatsHorSpacing*0.5;
         C.bNoSmooth = True;
       }
       else
         FlagShift=0;
+        
       // Draw Bot or Ping/PL
-      C.SetPos( X, Y + StatIndent + FlagShift);
+      C.SetPos( X, Y + FaceDimension + StatsHorSpacing + FlagShift);
       if( Ordered[i].bIsABot )
       {
         C.DrawText( "BOT" );
         if( Ordered[i].Team == pPRI.Team )
         {
-          C.SetPos( X, Y + StatIndent + DummyY);
+          C.SetPos( X, Y + FaceDimension + StatsHorSpacing + DummyY);
           C.DrawText( Left( string( BotReplicationInfo( Ordered[i] ).RealOrders ) , 3 ) );
         }
       }
@@ -520,7 +516,7 @@ function SmartCTFShowScores( Canvas C )
         if( Len( TempStr ) > 5 ) TempStr = "P:" $ Ordered[i].Ping;
         if( Len( TempStr ) > 5 ) TempStr = string( Ordered[i].Ping );
         C.DrawText( TempStr );
-        C.SetPos( X, Y + StatIndent + DummyY + FlagShift);
+        C.SetPos( X, Y + FaceDimension + StatsHorSpacing + DummyY + FlagShift);
         TempStr = "PL:" $ Ordered[i].PacketLoss $ "%";
         if( Len( TempStr ) > 5 ) TempStr = "L:" $ Ordered[i].PacketLoss $ "%";
         if( Len( TempStr ) > 5 ) TempStr = "L:" $ Ordered[i].PacketLoss;
@@ -533,10 +529,10 @@ function SmartCTFShowScores( Canvas C )
       {
         C.DrawColor = White;
         C.SetPos( X, Y );
-        if( Ordered[i].HasFlag.IsA( 'GreenFlag' ) ) C.DrawIcon( texture'GreenFlag', 1 );
-        else if( Ordered[i].HasFlag.IsA( 'YellowFlag' ) ) C.DrawIcon( texture'YellowFlag', 1 );
-        else if( Ordered[i].Team == 0 ) C.DrawIcon( texture'BlueFlag', 1 );
-        else C.DrawIcon( texture'RedFlag', 1 );
+        if( Ordered[i].HasFlag.IsA( 'GreenFlag' ) ) C.DrawIcon( texture'GreenFlag', FaceDimension/texture'GreenFlag'.USize );
+        else if( Ordered[i].HasFlag.IsA( 'YellowFlag' ) ) C.DrawIcon( texture'YellowFlag', FaceDimension/texture'YellowFlag'.USize );
+        else if( Ordered[i].Team == 0 ) C.DrawIcon( texture'BlueFlag', FaceDimension/texture'BlueFlag'.USize );
+        else C.DrawIcon( texture'RedFlag', FaceDimension/texture'RedFlag'.USize );
       } // End if he has Flag
 
       C.Font = PlayerNameFont;
@@ -632,19 +628,21 @@ function SmartCTFShowScores( Canvas C )
 
 function InitStatBoardConstPos( Canvas C )
 {
-  local float Nil, LeftSpacingPercent, MidSpacingPercent, RightSpacingPercent;
+  local float Nil, LeftSpacingPercent, MidSpacingPercent, RightSpacingPercent, PingWidth;
 
   CapFont = Font'LEDFont2'; //Font( DynamicLoadObject( "UWindowFonts.UTFont40", class'Font' ) );
   FooterFont = MyFonts.GetSmallestFont( C.ClipX );
   GameEndedFont = MyFonts.GetHugeFont( C.ClipX );
   PlayerNameFont = MyFonts.GetBigFont( C.ClipX );
-  TinyInfoFont = C.SmallFont;
+  TinyInfoFont = MyFonts.GetAReallySmallFont( C.ClipX );;
 
+  /*
   if( PlayerNameFont == PtsFont22 ) FragsFont = PtsFont18;
   else if( PlayerNameFont == PtsFont20 ) FragsFont = PtsFont18;
   else if( PlayerNameFont == PtsFont18 ) FragsFont = PtsFont14;
   else if( PlayerNameFont == PtsFont16 ) FragsFont = PtsFont12;
-  else FragsFont = font'SmallFont';
+  */
+  FragsFont = MyFonts.GetSmallFont( C.ClipX );
 
   C.Font = PlayerNameFont;
   C.StrLen( "Player", Nil, NameHeight );
@@ -663,8 +661,11 @@ function InitStatBoardConstPos( Canvas C )
   ColumnShadingSpacingY = ( 10.0 / 1024.0 ) * C.ClipX;
 
   StatsHorSpacing = ( 5.0 / 1024.0 ) * C.ClipX;
-  StatIndent = ( 32 + StatsHorSpacing ); // For face + flag icons
-
+  C.Font = TinyInfoFont;
+  C.StrLen( "XXXXX", PingWidth, Nil );
+  FaceDimension = max(32, PingWidth);
+  StatIndent = ( PingWidth + StatsHorSpacing ); // For face + flag icons
+  
   InitStatBoardDynamicPos( C );
 }
 
@@ -1080,6 +1081,5 @@ defaultproperties
      RankingIcon(9)=Texture'mosttime'
      RankingIcon(10)=Texture'mostkills'
      RankingIcon(11)=Texture'mostcovers'
-     RankingIcon(12)=Texture'2on2'
 }
 

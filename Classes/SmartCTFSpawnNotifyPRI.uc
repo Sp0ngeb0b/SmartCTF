@@ -1,7 +1,5 @@
 class SmartCTFSpawnNotifyPRI expands SpawnNotify;
 
-var string TwoOnTwoWinner[2];
-
 var Actor IpToCountry;
 var bool bChecked;
 
@@ -30,10 +28,6 @@ simulated event Actor SpawnNotification( Actor A )
     RI.IpToCountry=IpToCountry;
     RI.bIpToCountry=True;
   }
-  
-  RI.TwoOnTwoWinner[0] = TwoOnTwoWinner[0];
-  RI.TwoOnTwoWinner[1] = TwoOnTwoWinner[1];
-  
   return A;
 }
 

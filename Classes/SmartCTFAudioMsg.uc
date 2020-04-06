@@ -5,6 +5,10 @@
 #exec AUDIO IMPORT NAME=denied FILE=sounds\denied.wav
 #exec AUDIO IMPORT NAME=holyShit FILE=sounds\holyShit.wav
 #exec AUDIO IMPORT NAME=wickedSick FILE=sounds\wickedSick.wav
+#exec AUDIO IMPORT NAME=impressive FILE=sounds\impressive.wav
+#exec AUDIO IMPORT NAME=excellent FILE=sounds\excellent.wav
+#exec AUDIO IMPORT NAME=outstanding FILE=sounds\outstanding.wav
+#exec AUDIO IMPORT NAME=unreal FILE=sounds\unreal.wav
 
 class SmartCTFAudioMsg expands LocalMessagePlus;
 
@@ -33,7 +37,15 @@ static simulated function ClientReceive( PlayerPawn P, optional int Switch, opti
        break;
     case 11:  P.ClientPlaySound( sound'holyShit', , true );
        break;
-    case 14:  P.ClientPlaySound( sound'wickedSick', , true );
+    case 15:  P.ClientPlaySound( sound'wickedSick', , true );
+       break;
+    case 20:  P.ClientPlaySound( sound'impressive', , true );
+       break;
+    case 25:  P.ClientPlaySound( sound'excellent', , true );
+       break;
+    case 30:  P.ClientPlaySound( sound'outstanding', , true );
+       break;
+    case 35:  P.ClientPlaySound( sound'unreal', , true );
        break;
   }
 }

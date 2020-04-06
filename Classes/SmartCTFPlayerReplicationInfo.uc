@@ -8,6 +8,8 @@ var string CountryPrefix; // for IpToCountry
 var string RankingStatus;
 
 // Server side
+var NexgenSharedDataContainer statsData;
+var NexgenClient client;
 var float LastKillTime;
 var int MultiLevel;
 var int FragSpree, CoverSpree, SealSpree, SpawnKillSpree;
@@ -23,15 +25,13 @@ var byte IndicatorVisibility;
 var Actor IpToCountry;
 var bool bIpToCountry;
 var bool bRankingStatusCleared;
-var int RankingTries;
-var string TwoOnTwoWinner[2];
 
 replication
 {
   // Stats
   reliable if( Role == ROLE_Authority )
     Captures, Assists, Grabs, Covers, Seals, FlagKills, DefKills,
-    Frags, HeadShots, ShieldBelts, Amps, Combos, InsaneCombos, CountryPrefix, RankingStatus, TwoOnTwoWinner;
+    Frags, HeadShots, ShieldBelts, Amps, Combos, InsaneCombos, CountryPrefix, RankingStatus;
 
   // Toggle stats functions
   reliable if( Role == ROLE_Authority )
@@ -51,10 +51,8 @@ function Timer()
 {
   local string temp;
   local PlayerPawn P;
-  local NexgenUTStatsDC StatsData;
-  local NexgenClient Client;
   local int i;
-  
+    
   if( Owner == None )
   {
     SetTimer( 0.0, False );
@@ -92,111 +90,67 @@ function Timer()
          bIpToCountry=False;
   }
   
-  if(RankingTries < 40 && !bRankingStatusCleared && Owner.Owner.IsA('PlayerPawn')) {        
-    foreach AllActors(class'NexgenUTStatsDC', StatsData) {
-      if(StatsData.bStatsAvailable) {
-        // Search for self
-        foreach AllActors(class'NexgenClient', Client) {
-          if(client.player == PlayerPawn(Owner.Owner)) {
-            if(client.playerID != "") {
-            
-            // Check whether tournament Winner
-            for(i=0;i<2;i++) {
-              if(InStr(TwoOnTwoWinner[i], client.playerID) != -1) {
-                RankingStatus="2on2";
-                bRankingStatusCleared = true;
-                return;
-              }
-            }      
-            
-              // Check whether in top3
-              for(i=0;i<3;i++) {
-                if(InStr(StatsData.TopPlayers[i], client.playerID) != -1) {
-                  switch(i) {
-                    case 0:
-                      RankingStatus="top1";
-                      bRankingStatusCleared = true;
-                    return;
-                    case 1:
-                      RankingStatus="top2";
-                      bRankingStatusCleared = true;
-                    break;
-                    case 2:
-                      RankingStatus="top3";
-                      bRankingStatusCleared = true;
-                    break;
-                  }
-                }
-              }
-            
-              // Check whether in best 3 attCTF
-              for(i=0;i<3;i++) {
-                if(InStr(StatsData.BestAttCTF[i], client.playerID) != -1) {
-                  switch(i) {
-                    case 0:
-                      RankingStatus="attctf1";
-                      bRankingStatusCleared = true;
-                    return;
-                    case 1:
-                      if(RankingStatus != "top2") RankingStatus="attctf2";
-                      bRankingStatusCleared = true;
-                    break;
-                    case 2:
-                      if(RankingStatus == "") RankingStatus="attctf3";
-                      bRankingStatusCleared = true;
-                    break;
-                  }
-                }
-              }
-            
-              // Check whether in best 3 defCTF
-              for(i=0;i<3;i++) {
-                if(InStr(StatsData.BestDefCTF[i], client.playerID) != -1) {
-                  switch(i) {
-                    case 0:
-                      RankingStatus="defctf1";
-                      bRankingStatusCleared = true;
-                    return;
-                    case 1:
-                      if(RankingStatus != "top2" && RankingStatus != "attctf2") RankingStatus="defctf2";
-                      bRankingStatusCleared = true;
-                    break;
-                    case 2:
-                      if(RankingStatus == "") RankingStatus="defctf3";
-                      bRankingStatusCleared = true;
-                    break;
-                  }
-                }
-              }
-              
-            
-              // Check whether most time
-              if(InStr(StatsData.MostTime, client.playerID) != -1) { 
-                RankingStatus="mosttime";
-                bRankingStatusCleared = true;
-                return;
-              }
-              
-              // Check whether most covers
-              if(InStr(StatsData.MostCovers, client.playerID) != -1) {
-                if(RankingStatus == "") RankingStatus="mostcovers";
-                bRankingStatusCleared = true;
-                return;
-              }
-            
-              // Check whether most deaths
-              if(InStr(StatsData.MostKills, client.playerID) != -1) {
-                if(RankingStatus == "") RankingStatus="mostkills";
-                bRankingStatusCleared = true;
-                return;
-              }
-            }
-          }
-        }
-      }
-      break;
+  // Try to locate stats data
+  if(statsData == none) {
+    forEach AllActors(class'NexgenSharedDataContainer', statsData) {
+      if(statsData.containerID == "NexgenUTStatsDC") break;
+      else statsData = none;
     }
-    RankingTries++;
+  }
+  
+  // Try to locate Nexgen Client
+  if(client == none) {
+    forEach AllActors(class'NexgenClient', client) {
+      if(client.player == PlayerPawn(Owner.Owner)) break;
+      else client = none;
+    }
+  }
+  
+  // Set ranking status
+  if(statsData != none && client != none && client.playerID != "" && !bRankingStatusCleared) {        
+    bRankingStatusCleared = true;
+    
+    // Check whether in top3
+    for(i=0; i<statsData.getArraySize("topPlayers"); i++) {
+      if(InStr(statsData.getString("topPlayers", i), client.playerID) != -1) {
+        RankingStatus="top"$i;
+        return;
+      }
+    }
+    
+    // Check whether in best 3 attCTF
+    for(i=0; i<statsData.getArraySize("bestAttCTF"); i++) {
+      if(InStr(statsData.getString("bestAttCTF", i), client.playerID) != -1) {
+        RankingStatus="attctf"$i;
+        return;
+      }
+    }
+
+    // Check whether in best 3 defCTF
+    for(i=0; i<statsData.getArraySize("bestDefCTF"); i++) {
+      if(InStr(statsData.getString("bestDefCTF", i), client.playerID) != -1) {
+        RankingStatus="defctf"$i;
+        return;
+      }
+    }            
+     
+    // Check whether most time
+    if(InStr(statsData.getString("mostTime"), client.playerID) != -1) { 
+      RankingStatus="mosttime";
+      return;
+    }
+    
+    // Check whether most covers
+    if(InStr(statsData.getString("mostCovers"), client.playerID) != -1) { 
+      RankingStatus="mostcovers";
+      return;
+    }
+    
+    // Check whether most kills
+    if(InStr(statsData.getString("mostKills"), client.playerID) != -1) { 
+      RankingStatus="mostkills";
+      return;
+    }
   }
 }
 

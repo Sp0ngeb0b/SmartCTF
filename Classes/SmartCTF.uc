@@ -106,7 +106,6 @@ var() config float MsgDelay;
 var() config bool  bStoreStats;
 var() config bool bSnowyScoreboard;
 var() config bool bXmasImages;
-var() config string TwoOnTwoWinner[2];
 var(SmartCTFMessages) config byte CoverMsgType;
 var(SmartCTFMessages) config byte CoverSpreeMsgType;
 var(SmartCTFMessages) config byte SealMsgType;
@@ -131,6 +130,7 @@ var()                config float insaneComboXYLimit;
 var()                config float insaneComboVelLimit;
 var(SmartCTFBonuses) config int comboWhoreAmount;
 var(SmartCTFBonuses) config int comboKingAmount;
+var(SmartCTFBonuses) config int comboManiacAmount;
 
 var texture powered;
 
@@ -206,16 +206,10 @@ function PostBeginPlay()
   local FlagBase fb;
   local Actor A;
   local Actor IpToCountry;
-  local SmartCTFSpawnNotifyPRI SPN;
 
-  SPN = Level.Game.Spawn( class'SmartCTFSpawnNotifyPRI');
+  Level.Game.Spawn( class'SmartCTFSpawnNotifyPRI');
 
   SaveConfig(); // Create the .ini if its not already there.
-  
-  if(SPN != none) {
-     SPN.TwoOnTwoWinner[0] = TwoOnTwoWinner[0];
-     SPN.TwoOnTwoWinner[1] = TwoOnTwoWinner[1];
-  }
 
   //Register as a message mutator, as we'll be using message monitoring
   //to perform some of our code. If not registered, then many message
@@ -654,6 +648,7 @@ function bool PreventDeath( Pawn Victim, Pawn Killer, name DamageType, vector Hi
   local SmartCTFPlayerReplicationInfo KillerStats, VictimStats;
   local ShockProj proj;
   local vector tmpVector, XYVector;
+  local bool bComboWhore;
 
   bPrevent = super.PreventDeath( Victim, Killer, DamageType, HitLocation );
   if( bPrevent ) return bPrevent; // Player didn't die, so return.
@@ -871,11 +866,16 @@ function bool PreventDeath( Pawn Victim, Pawn Killer, name DamageType, vector Hi
     
     if(Level.Game.LocalLog != None) Level.Game.LocalLog.LogSpecialEvent("combo_kill", KillerPRI.PlayerID, VictimPRI.PlayerID);
     
-    // Combowhore?
+    // Combowhore/king/maniac?
     if(KillerStats.Combos == comboWhoreAmount) {
       BroadcastLocalizedMessage( class'SmartCTFMessage', 12, KillerPRI, VictimPRI );
+      bComboWhore = true;
     } else if(KillerStats.Combos == comboKingAmount) {
       BroadcastLocalizedMessage( class'SmartCTFMessage', 13, KillerPRI, VictimPRI );
+      bComboWhore = true;
+    } else if(KillerStats.Combos == comboManiacAmount) {
+      BroadcastLocalizedMessage( class'SmartCTFMessage', 14, KillerPRI, VictimPRI );
+      bComboWhore = true;
     }
     
     // Get initial location of the projectile to decide whether this is an insane combo
@@ -893,15 +893,19 @@ function bool PreventDeath( Pawn Victim, Pawn Killer, name DamageType, vector Hi
           
           if(Level.Game.LocalLog != None) Level.Game.LocalLog.LogSpecialEvent("combo_insane", KillerPRI.PlayerID);
           
-          if(KillerStats.InsaneCombos%5 == 0) {
-            // Wicked sick
+          if(KillerStats.InsaneCombos%5 == 0 && KillerStats.InsaneCombos <= 25) {
+            // Wicked sick etc.
             KillerPRI.Score += 4;
-            Killer.ReceiveLocalizedMessage( class'SmartCTFAudioMsg', 14 );
-            Killer.ReceiveLocalizedMessage( class'SmartCTFCoolMsg', 14, KillerPRI, VictimPRI );
+            if(!bComboWhore) {
+              Killer.ReceiveLocalizedMessage( class'SmartCTFAudioMsg', 10 + KillerStats.InsaneCombos );
+              Killer.ReceiveLocalizedMessage( class'SmartCTFCoolMsg', 10 + KillerStats.InsaneCombos, KillerPRI, VictimPRI );
+            }
           } else {
             // Holyshit
-            Killer.ReceiveLocalizedMessage( class'SmartCTFAudioMsg', 11 );
-            Killer.ReceiveLocalizedMessage( class'SmartCTFCoolMsg', 11, KillerPRI, VictimPRI );
+            if(!bComboWhore) {
+              Killer.ReceiveLocalizedMessage( class'SmartCTFAudioMsg', 11 );
+              Killer.ReceiveLocalizedMessage( class'SmartCTFCoolMsg', 11, KillerPRI, VictimPRI );
+            }
           }
         }
         break;
@@ -1795,7 +1799,7 @@ simulated event PostRender( Canvas C )
   local string TempStr;
 
   // Get stuff relating to PlayerOwner, if not gotten. Also spawn Font info.
-  if( PlayerOwner == None )
+  if( PlayerOwner == None || pTGRI == none || pPRI == none)
   {
     PlayerOwner = C.Viewport.Actor;
     MyHUD = ChallengeHUD( PlayerOwner.MyHUD );
@@ -1806,7 +1810,7 @@ simulated event PostRender( Canvas C )
   }
 
   // Draw the FC Location
-  if( SCTFGame.bShowFCLocation )
+  if( SCTFGame.bShowFCLocation && pTGRI != none && pPRI != none)
   {
     for( i = 0; i < 32; i++ )
     {
@@ -2157,4 +2161,5 @@ defaultproperties
      insaneComboVelLimit=800
      comboWhoreAmount=30
      comboKingAmount=50
+     comboManiacAmount=70
 }

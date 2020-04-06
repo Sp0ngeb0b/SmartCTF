@@ -2,6 +2,7 @@
 
 #exec AUDIO IMPORT NAME=comboWhore FILE=sounds\comboWhore.wav
 #exec AUDIO IMPORT NAME=comboKing FILE=sounds\comboKing.wav
+#exec AUDIO IMPORT NAME=comboManiac FILE=sounds\maniac.wav
 
 class SmartCTFMessage extends LocalMessagePlus;
 
@@ -11,6 +12,7 @@ var string UltraCoverMsg, YouUltraCoverMsg;
 var string SealMsg, YouSealMsg;
 var string ComboWhoreMsg, YouComboWhoreMsg;
 var string ComboKingMsg, YouComboKingMsg;
+var string ComboManiacMsg, YouComboManiacMsg;
 var string SavedMsg, YouSavedMsg;
 var string DeniedMsg, YouDeniedMsg;
 var string SpawnKillMsg;
@@ -45,7 +47,8 @@ static function string GetString( optional int Switch, optional PlayerReplicatio
       return RelatedPRI_1.PlayerName @ default.ComboWhoreMsg;
     case 13: // Comboking
       return RelatedPRI_1.PlayerName @ default.ComboKingMsg;
-
+    case 14: // Combomaniac
+      return RelatedPRI_1.PlayerName @ default.ComboManiacMsg;
     case 0 + 64:
       return default.YouCoveredMsg;
     case 1 + 64:
@@ -62,6 +65,8 @@ static function string GetString( optional int Switch, optional PlayerReplicatio
       return default.YouComboWhoreMsg;
     case 13 + 64:
       return default.YouComboKingMsg;
+    case 14 + 64:
+      return default.YouComboManiacMsg;
   }
   return "";
 }
@@ -86,6 +91,11 @@ static simulated function ClientReceive( PlayerPawn P, optional int Switch, opti
       if( RelatedPRI_1 == P.PlayerReplicationInfo ) P.ClientPlaySound( sound'comboKing', , true );
       else P.PlaySound( sound'SpreeSound', , 4.0 );
       break;
+      
+    case 14: // Combomaniac spree - Combomaniac sound for player, spreesound for all
+      if( RelatedPRI_1 == P.PlayerReplicationInfo ) P.ClientPlaySound( sound'comboManiac', , true );
+      else P.PlaySound( sound'SpreeSound', , 4.0 );
+      break;
   }
 }
 
@@ -94,7 +104,8 @@ static function Color GetColor( optional int Switch, optional PlayerReplicationI
   switch( Switch )
   {
     case 12:
-    case 13: return default.comboWhoreColor;
+    case 13: 
+    case 14: return default.comboWhoreColor;
   }
   return default.DrawColor;
 }
@@ -117,6 +128,8 @@ defaultproperties
      YouComboWhoreMsg="You are a COMBO WHORE!"
      ComboKingMsg="is a COMBO KING!"
      YouComboKingMsg="You are a COMBO KING!"
+     ComboManiacMsg="is a COMBO MANIAC!"
+     YouComboManiacMsg="You are a COMBO MANIAC!"     
      SpawnKillMsg="is a spawnkilling lamer!"
      FontSize=1
      bIsSpecial=True
