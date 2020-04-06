@@ -1872,7 +1872,6 @@ simulated event PostRender( Canvas C )
     C.SetPos( C.ClipX - powered.Usize - 16, 40 );
     C.DrawIcon( powered, 1 );
     C.Font = MyFonts.GetSmallFont( C.ClipX );
-	//C.Font = Font(DynamicLoadObject("LadderFonts.UTLadder14", class'Font'));
     C.StrLen( "SmartCTF "$Version , Size, DummyY );
     C.SetPos( C.ClipX  - powered.Usize/2 - Size/2 - 16, 40 + 8 + powered.Vsize );
     Temp = DummyY;
@@ -2083,8 +2082,8 @@ simulated function Timer()
 	// Too bad the timer only runs at 1.0. That sorf of defies the purpose of MsgDelay being a float instead of an int. O well... matches nice with SbDelay ;)
 	for(pn = Level.PawnList; pn != None; pn = pn.NextPawn)
 	if(pn.IsA('PlayerPawn') && pn.bIsPlayer && Level.TimeSeconds - pn.PlayerReplicationInfo.StartTime >= MsgDelay && pn.PlayerReplicationInfo.PlayerID>MsgPID){
-	if(!SCTFGame.bDrawLogo)
-	pn.ClientMessage( "Running SmartCTF " $ Version $ ". Type 'Mutate SmartCTF' in the console for info." );
+	//if(!SCTFGame.bDrawLogo)
+	//pn.ClientMessage( "Running SmartCTF " $ Version $ ". Type 'Mutate SmartCTF' in the console for info." );
 	if(bExtraMsg && bDoKeybind && SCTFGame.bDrawLogo)
 	pn.ClientMessage("Running SmartCTF " $ Version $ ". Press F3 to toggle between scoreboards.");
 	else if(bExtraMsg && bDoKeybind)

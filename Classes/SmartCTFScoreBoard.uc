@@ -40,7 +40,6 @@ var float StartY, StatLineHeight, StatBlockSpacing, StatIndent, FaceDimension;
 var TournamentGameReplicationInfo pTGRI;
 var PlayerReplicationInfo pPRI;
 var Font StatFont, CapFont, FooterFont, GameEndedFont, PlayerNameFont, FragsFont, TinyInfoFont;
-//var Font PtsFont22, PtsFont20, PtsFont18, PtsFont16, PtsFont14, PtsFont12;
 
 var int MaxCaps, MaxAssists, MaxGrabs, MaxCovers, MaxSeals, MaxDefKills, MaxFlagKills, MaxFrags, MaxDeaths;
 var int TotShieldBelts, TotAmps;
@@ -81,14 +80,6 @@ function PostBeginPlay()
   LastSortTime = -100;
 
   // Preload
-  /*
-  PtsFont22 = Font( DynamicLoadObject( "LadderFonts.UTLadder22", class'Font' ) );
-  PtsFont20 = Font( DynamicLoadObject( "LadderFonts.UTLadder20", class'Font' ) );
-  PtsFont18 = Font( DynamicLoadObject( "LadderFonts.UTLadder18", class'Font' ) );
-  PtsFont16 = Font( DynamicLoadObject( "LadderFonts.UTLadder16", class'Font' ) );
-  PtsFont14 = Font( DynamicLoadObject( "LadderFonts.UTLadder14", class'Font' ) );
-  PtsFont12 = Font( DynamicLoadObject( "LadderFonts.UTLadder12", class'Font' ) );
-  */
   ChampionColorTemp = ChampionColor;
 
   SpawnNormalScoreBoard();
@@ -412,8 +403,8 @@ function SmartCTFShowScores( Canvas C )
         if(RankingIconNum != -1) {
           C.DrawColor = White;
           scale = NameHeight/RankingIcon[RankingIconNum].VSize * 0.75;
-          rankXOffset = RankingIcon[RankingIconNum].VSize*scale + 16;
-          C.SetPos( X + StatIndent + 8, Y + RankingIcon[RankingIconNum].VSize*scale * 0.25 - 2 );
+          rankXOffset = RankingIcon[RankingIconNum].VSize*scale + 8;
+          C.SetPos( X + StatIndent, Y + RankingIcon[RankingIconNum].VSize*scale * 0.25 - 2 );
           C.DrawIcon(RankingIcon[RankingIconNum], scale);
           C.SetPos( X + StatIndent + rankXOffset, Y );
         }
@@ -503,13 +494,13 @@ function SmartCTFShowScores( Canvas C )
       if( Ordered[i].bIsABot )
       {
         C.DrawText( "BOT" );
-        if( Ordered[i].Team == pPRI.Team )
+        if( Ordered[i].Team == pPRI.Team && RowColState == 0)
         {
           C.SetPos( X, Y + FaceDimension + StatsHorSpacing + DummyY);
           C.DrawText( Left( string( BotReplicationInfo( Ordered[i] ).RealOrders ) , 3 ) );
         }
       }
-      else
+      else if(RowColState == 0)
       {
         C.DrawColor = HeaderTinyInfoColor;
         TempStr = "PI:" $ Ordered[i].Ping;
@@ -719,7 +710,7 @@ function CompressStatBoard( Canvas C , optional int Level )
     }
     else if( Level == 2 )
     {
-      InitStatBoardDynamicPos( C, 2, 3, Font( DynamicLoadObject( "UWindowFonts.Tahoma10", class'Font' ) ) , 1.0 , 1.0 );
+      InitStatBoardDynamicPos( C, 2, 3, MyFonts.GetAReallySmallFont( C.ClipX ) , 1.0 , 1.0 );
     }
     else
     {
