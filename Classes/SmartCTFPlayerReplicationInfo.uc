@@ -113,7 +113,7 @@ function Timer()
     // Check whether in top3
     for(i=0; i<statsData.getArraySize("topPlayers"); i++) {
       if(InStr(statsData.getString("topPlayers", i), client.playerID) != -1) {
-        RankingStatus="top"$i;
+        RankingStatus="top"$i+1;
         return;
       }
     }
@@ -121,7 +121,7 @@ function Timer()
     // Check whether in best 3 attCTF
     for(i=0; i<statsData.getArraySize("bestAttCTF"); i++) {
       if(InStr(statsData.getString("bestAttCTF", i), client.playerID) != -1) {
-        RankingStatus="attctf"$i;
+        RankingStatus="attctf"$i+1;
         return;
       }
     }
@@ -129,7 +129,7 @@ function Timer()
     // Check whether in best 3 defCTF
     for(i=0; i<statsData.getArraySize("bestDefCTF"); i++) {
       if(InStr(statsData.getString("bestDefCTF", i), client.playerID) != -1) {
-        RankingStatus="defctf"$i;
+        RankingStatus="defctf"$i+1;
         return;
       }
     }            
